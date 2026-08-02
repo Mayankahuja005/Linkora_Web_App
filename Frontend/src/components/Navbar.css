@@ -1,0 +1,576 @@
+/*==========================================
+          LINKORA CINEMATIC INTRO
+==========================================*/
+
+.navbar-intro{
+    position:fixed;
+    inset:0;
+    z-index:99999;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    overflow:hidden;
+
+    background:
+    radial-gradient(circle at top,#3b82f6 0%,transparent 25%),
+    radial-gradient(circle at bottom,#06b6d4 0%,transparent 30%),
+    linear-gradient(135deg,#020617,#0f172a,#111827,#1d4ed8,#020617);
+
+    background-size:500% 500%;
+
+    animation:
+    bgMove 12s linear infinite,
+    introEnd 5s forwards;
+}
+
+/*========================
+      GRID BACKGROUND
+========================*/
+
+.navbar-intro::before{
+
+    content:"";
+
+    position:absolute;
+
+    inset:-50%;
+
+    background:
+
+    linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+
+    linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+
+    background-size:55px 55px;
+
+    animation:gridMove 10s linear infinite;
+
+    opacity:.35;
+
+}
+
+/*========================
+      GLOWING CORE
+========================*/
+
+.navbar-intro::after{
+
+    content:"";
+
+    position:absolute;
+
+    width:800px;
+
+    height:800px;
+
+    border-radius:50%;
+
+    background:
+
+    radial-gradient(circle,
+
+    rgba(34,211,238,.35),
+
+    rgba(59,130,246,.15),
+
+    transparent 70%);
+
+    animation:pulse 3s ease-in-out infinite;
+
+}
+
+/*========================
+        GLASS CARD
+========================*/
+
+.intro-content{
+
+    position:relative;
+
+    z-index:5;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    text-align:center;
+
+    padding:55px 70px;
+
+    border-radius:30px;
+
+    background:rgba(255,255,255,.05);
+
+    backdrop-filter:blur(20px);
+
+    border:1px solid rgba(255,255,255,.12);
+
+    box-shadow:
+
+    0 0 50px rgba(34,211,238,.15),
+
+    inset 0 0 25px rgba(255,255,255,.05);
+
+    animation:
+
+    cardAppear 1.5s ease;
+
+}
+
+/*========================
+      ROTATING RINGS
+========================*/
+
+.intro-content::before{
+
+    content:"";
+
+    position:absolute;
+
+    width:520px;
+
+    height:520px;
+
+    border-radius:50%;
+
+    border:2px solid rgba(34,211,238,.2);
+
+    animation:rotateRing 14s linear infinite;
+
+}
+
+.intro-content::after{
+
+    content:"";
+
+    position:absolute;
+
+    width:650px;
+
+    height:650px;
+
+    border-radius:50%;
+
+    border:1px dashed rgba(59,130,246,.25);
+
+    animation:rotateRingReverse 18s linear infinite;
+
+}
+
+/*========================
+       WELCOME TEXT
+========================*/
+
+.intro-content h3{
+
+    color:#dbeafe;
+
+    font-size:clamp(1rem,2vw,2rem);
+
+    letter-spacing:14px;
+
+    margin-bottom:20px;
+
+    text-transform:uppercase;
+
+    animation:
+
+    fadeDown 1s ease,
+
+    glowSmall 2s infinite alternate;
+
+}
+
+/*========================
+       MAIN LOGO
+========================*/
+
+.intro-content h1{
+
+    margin:0;
+
+    font-size:clamp(4rem,10vw,9rem);
+
+    font-weight:900;
+
+    letter-spacing:18px;
+
+    text-transform:uppercase;
+
+    background:
+
+    linear-gradient(
+
+    90deg,
+
+    #ffffff,
+
+    #67e8f9,
+
+    #2563eb,
+
+    #ffffff);
+
+    background-size:300%;
+
+    -webkit-background-clip:text;
+
+    color:transparent;
+
+    position:relative;
+
+    animation:
+
+    reveal 1.8s ease,
+
+    shine 3s linear infinite,
+
+    logoGlow 1.8s infinite alternate;
+
+}
+
+/* Moving Shine */
+
+.intro-content h1::after{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+
+    left:-150%;
+
+    width:45%;
+
+    height:100%;
+
+    transform:skewX(-25deg);
+
+    background:
+
+    linear-gradient(
+
+    90deg,
+
+    transparent,
+
+    rgba(255,255,255,.9),
+
+    transparent);
+
+    animation:flash 2.8s infinite;
+
+}
+
+/*========================
+       TAGLINE
+========================*/
+
+.intro-content span{
+
+    margin-top:22px;
+
+    color:#cbd5e1;
+
+    font-size:clamp(.9rem,2vw,1.3rem);
+
+    letter-spacing:5px;
+
+    animation:fadeUp 1.5s ease;
+
+}
+/*==========================================
+            ANIMATIONS
+==========================================*/
+
+@keyframes bgMove{
+
+    0%{
+        background-position:0% 50%;
+    }
+
+    50%{
+        background-position:100% 50%;
+    }
+
+    100%{
+        background-position:0% 50%;
+    }
+
+}
+
+@keyframes gridMove{
+
+    0%{
+        transform:translateY(0) scale(1);
+    }
+
+    100%{
+        transform:translateY(55px) scale(1.05);
+    }
+
+}
+
+@keyframes pulse{
+
+    0%,100%{
+        transform:scale(.8);
+        opacity:.25;
+    }
+
+    50%{
+        transform:scale(1.35);
+        opacity:.7;
+    }
+
+}
+
+@keyframes rotateRing{
+
+    from{
+        transform:rotate(0deg);
+    }
+
+    to{
+        transform:rotate(360deg);
+    }
+
+}
+
+@keyframes rotateRingReverse{
+
+    from{
+        transform:rotate(360deg);
+    }
+
+    to{
+        transform:rotate(0deg);
+    }
+
+}
+
+@keyframes cardAppear{
+
+    0%{
+        opacity:0;
+        transform:scale(.6);
+        filter:blur(15px);
+    }
+
+    60%{
+        transform:scale(1.06);
+    }
+
+    100%{
+        opacity:1;
+        transform:scale(1);
+        filter:blur(0);
+    }
+
+}
+
+@keyframes reveal{
+
+    0%{
+        opacity:0;
+        transform:scale(.25) rotate(-8deg);
+        filter:blur(25px);
+    }
+
+    50%{
+        transform:scale(1.12);
+    }
+
+    100%{
+        opacity:1;
+        transform:scale(1);
+        filter:blur(0);
+    }
+
+}
+
+@keyframes shine{
+
+    from{
+        background-position:0%;
+    }
+
+    to{
+        background-position:300%;
+    }
+
+}
+
+@keyframes flash{
+
+    from{
+        left:-150%;
+    }
+
+    to{
+        left:180%;
+    }
+
+}
+
+@keyframes logoGlow{
+
+    from{
+        text-shadow:
+        0 0 25px #22d3ee,
+        0 0 45px #22d3ee;
+    }
+
+    to{
+        text-shadow:
+        0 0 45px #3b82f6,
+        0 0 90px #3b82f6,
+        0 0 140px cyan;
+    }
+
+}
+
+@keyframes glowSmall{
+
+    from{
+        text-shadow:0 0 10px cyan;
+    }
+
+    to{
+        text-shadow:0 0 30px #3b82f6;
+    }
+
+}
+
+@keyframes fadeDown{
+
+    from{
+        opacity:0;
+        transform:translateY(-40px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+
+}
+
+@keyframes fadeUp{
+
+    from{
+        opacity:0;
+        transform:translateY(40px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+
+}
+
+/*==========================================
+          FADE AFTER 5 SEC
+==========================================*/
+
+@keyframes introEnd{
+
+    0%,95%{
+        opacity:1;
+        visibility:visible;
+    }
+
+    100%{
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
+    }
+
+}
+
+/*==========================================
+        RESPONSIVE
+==========================================*/
+
+@media (max-width:768px){
+
+    .intro-content{
+
+        width:92%;
+
+        padding:30px 20px;
+
+    }
+
+    .intro-content::before{
+
+        width:320px;
+        height:320px;
+
+    }
+
+    .intro-content::after{
+
+        width:400px;
+        height:400px;
+
+    }
+
+    .intro-content h3{
+
+        font-size:1rem;
+        letter-spacing:5px;
+
+    }
+
+    .intro-content h1{
+
+        font-size:3rem;
+        letter-spacing:6px;
+
+    }
+
+    .intro-content span{
+
+        font-size:.95rem;
+        letter-spacing:2px;
+
+    }
+
+}
+
+@media (max-width:480px){
+
+    .intro-content{
+
+        padding:25px 15px;
+
+    }
+
+    .intro-content h1{
+
+        font-size:2.3rem;
+
+    }
+
+    .intro-content h3{
+
+        font-size:.85rem;
+
+    }
+
+    .intro-content span{
+
+        font-size:.8rem;
+
+    }
+
+}

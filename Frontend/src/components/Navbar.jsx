@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-
+import "./Navbar.css"
 function Navbar() {
   return (
     <nav className="w-full bg-linear-to-r from-slate-950 via-blue-950 to-slate-950 border-b border-blue-800 shadow-lg">
@@ -65,6 +65,13 @@ function Navbar() {
           >
             👤
           </Link>
+        </div>
+      </div>
+      <div className="navbar-intro">
+        <div className="intro-content">
+          <h3>WELCOME TO</h3>
+          <h1>LINKORA</h1>
+          <span>Connect • Share • Grow</span>
         </div>
       </div>
     </nav>
