@@ -1,0 +1,160 @@
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+
+function Signup() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (toast) {
+      const timerId = setTimeout(() => {
+        setToast(null);
+      }, 3000);
+      return () => clearTimeout(timerId);
+    }
+  }, [toast]);
+
+  const handleChange = (e) => {
+    e.preventDefault()
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+
+      const emailFormat =
+        /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|outlook\.com|bvcoe\.edu\.in)$/;
+
+      if (!emailFormat.test(formData.email)) {
+        setToast({
+          message: "Please enter a valid email address",
+          type: "error",
+        });
+        return;
+      }
+
+      const response = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      console.log("Response is : ", response);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Signup failed");
+      }
+
+      setToast({
+        message: "Login Successfully 🎉",
+        type: "success",
+      });
+
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+      });
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+    } catch (error) {
+      setToast({
+        message: error.message,
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-blue-950 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-blue-600">
+            Linkora
+          </h1>
+          <p className="text-gray-500 mt-2 text-sm sm:text-base">
+            Build your professional network
+          </p>
+        </div>
+
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 text-center mb-6">
+          Create your account
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <input
+            type="text"
+            placeholder="Enter your name"
+            value={formData.name}
+            onChange={handleChange}
+            name="name"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+          />
+
+          <input
+            type="text"
+            placeholder="Enter your email"
+            value={formData.email}
+            onChange={handleChange}
+            name="email"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+          />
+
+          <input
+            type="password"
+            placeholder="Enter your password"
+            value={formData.password}
+            onChange={handleChange}
+            name="password"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+          />
+
+          {toast && (
+            <div
+              className={`w-full rounded-xl px-4 py-3 text-sm font-medium text-center transition-all duration-300 ${
+                toast.type === "success"
+                  ? "bg-green-100 border border-green-300 text-green-700"
+                  : "bg-red-100 border border-red-300 text-red-700"
+              }`}
+            >
+              {toast.message}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white py-3 rounded-xl font-semibold transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {loading ? "Registering You..." : "Sign Up"}
+          </button>
+        </form>
+
+        <p className="text-center text-gray-500 mt-6 text-sm">
+          Already have an account?{" "}
+          <span className="text-blue-600 font-semibold hover:underline">
+            <Link to="/login">Login</Link>
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default Signup;
