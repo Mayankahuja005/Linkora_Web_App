@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react"
+import socket from "../socket/socket";
 import useAuthStore from "../store/useAuthStore"
 function MyConnections(){
+    const [incomingCall, setIncomingCall] = useState(null);
     const [connections,setConnections]=useState([])
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
@@ -37,10 +39,76 @@ function MyConnections(){
         fetchConnections()
     },[token])
 
+    const handleCall = (receiverId) => {
+      socket.emit("call-user", {
+        receiverId,
+        callerId: user.userId,
+      })
+    }
+    const handleAccept = () => {
+      socket.emit("accept-call", {
+        callerId: incomingCall,
+        receiverId: user.userId,
+      })
+    }
+
+    const handleReject = () => {
+      socket.emit("reject-call", {
+        callerId: incomingCall,
+        receiverId: user.userId,
+      })
+    }
+    useEffect(() => 
+      {
+        socket.on("incoming-call", ({ callerId }) => {
+          setIncomingCall(callerId);
+          console.log("Incoming Call From:", callerId)
+        })
+        socket.on("call-accepted", ({ receiverId }) => {
+          console.log("Call Accepted by:", receiverId);
+        });
+        socket.on("call-rejected", ({ receiverId }) => {
+          console.log("Call Rejected by:", receiverId);
+        });
+      return () => {
+        socket.off("incoming-call")
+        socket.off("call-accepted")
+        socket.off("call-rejected")
+      }
+      }, 
+    []);
+
     if(loading) return "Loading your connections..."
 
   return (
   <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-blue-950 py-8 px-4">
+    {incomingCall && (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="bg-white rounded-3xl shadow-2xl w-80 p-8 text-center animate-pulse">
+          <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center text-4xl">
+          📞
+          </div>
+
+          <h2 className="mt-5 text-2xl font-bold text-gray-800">
+            Incoming Call
+          </h2>
+
+          <p className="text-gray-500 mt-2">
+            Someone is calling you...
+          </p>
+
+          <div className="flex justify-center gap-4 mt-8">
+            <button  onClick={handleAccept} className="px-6 py-3 rounded-full bg-green-500 hover:bg-green-600 text-white font-semibold transition">
+              ✅ Accept
+            </button>
+
+            <button  onClick={handleReject} className="px-6 py-3 rounded-full bg-red-500 hover:bg-red-600 text-white font-semibold transition">
+              ❌ Reject
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="max-w-6xl mx-auto">
       <h1 className="text-3xl sm:text-4xl font-bold text-center text-white mb-8">
         My Connections
@@ -97,19 +165,10 @@ function MyConnections(){
                   <p className="text-gray-600 text-center mt-3">
                     {otherUser.bio || "No bio available"}
                   </p>
-
-                  {otherUser.skills?.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2 mt-4">
-                      {otherUser.skills.map((skill, index) => (
-                        <span
-                          key={index}
-                          className="badge badge-primary badge-outline"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex gap-3 mt-5">
+                      <button onClick={() => handleCall(otherUser._id)}>📞 Audio</button>
+                      <button onClick={() => handleCall(otherUser._id)}>📹 Video</button>
+                  </div>
                 </div>
               </div>
             );

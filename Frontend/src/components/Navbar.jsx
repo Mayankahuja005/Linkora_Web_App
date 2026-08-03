@@ -1,7 +1,18 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React from "react"
+import { useEffect } from "react"
+import { Link } from "react-router-dom"
 import "./Navbar.css"
+import useAuthStore from "../store/useAuthStore"
+import socket from "../socket/socket"
 function Navbar() {
+  const {user}=useAuthStore()
+  useEffect(() => {
+    
+  if (user?.userId) {
+    console.log("Emitting:", user.userId);
+    socket.emit("register-user", user.userId);
+  }
+}, [user]);
   return (
     <nav className="w-full bg-linear-to-r from-slate-950 via-blue-950 to-slate-950 border-b border-blue-800 shadow-lg">
       <div className="w-full px-4 py-4">
