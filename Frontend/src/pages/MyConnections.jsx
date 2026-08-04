@@ -1,22 +1,25 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState,useRef } from "react"
 import socket from "../socket/socket";
 import useAuthStore from "../store/useAuthStore"
 function MyConnections(){
-    const [incomingCall, setIncomingCall] = useState(null);
+    const [incomingCall, setIncomingCall] = useState(null)
     const [connections,setConnections]=useState([])
-    const [loading, setLoading] = useState(true);
-    const [toast, setToast] = useState(null);
-    const { token,user } = useAuthStore();
+    const [loading, setLoading] = useState(true)
+    const [toast, setToast] = useState(null)
+    const { token,user } = useAuthStore()
+    const localVideoRef = useRef(null)
+    const [localStream, setLocalStream] = useState(null)
+    const peerConnection = useRef(null)
 
     useEffect(() => {
         if (toast) {
           const timerId = setTimeout(() => {
-            setToast(null);
-          }, 3000);
+            setToast(null)
+          }, 3000)
     
           return () => clearTimeout(timerId);
         }
-    }, [toast]);
+    }, [toast])
 
     useEffect(()=>{
         const fetchConnections =async ()=>{
@@ -39,13 +42,64 @@ function MyConnections(){
         fetchConnections()
     },[token])
 
-    const handleCall = (receiverId) => {
+    const handleCall = async (receiverId) => {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      })
+      peerConnection.current = new RTCPeerConnection({
+        iceServers: [
+          {
+            urls: "stun:stun.l.google.com:19302",
+          },
+        ],
+      })
+      peerConnection.current.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit("ice-candidate", {
+            candidate: event.candidate,
+            receiverId
+          });
+        }
+      }
+      stream.getTracks().forEach((track) => {
+        peerConnection.current.addTrack(track, stream);
+      });
+      const offer = await peerConnection.current.createOffer()
+      await peerConnection.current.setLocalDescription(offer)
+      socket.emit("offer", {offer,receiverId});
+      setLocalStream(stream)
+      localVideoRef.current.srcObject = stream
       socket.emit("call-user", {
         receiverId,
         callerId: user.userId,
       })
     }
-    const handleAccept = () => {
+    const handleAccept =async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+      })
+      peerConnection.current = new RTCPeerConnection({
+        iceServers: [
+          {
+            urls: "stun:stun.l.google.com:19302",
+          }
+        ]
+      })
+      peerConnection.current.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit("ice-candidate", {
+            candidate: event.candidate,
+          receiverId: incomingCall,
+          });
+        }
+      }
+      stream.getTracks().forEach((track) => {
+        peerConnection.current.addTrack(track, stream)
+      })
+      setLocalStream(stream);
+      localVideoRef.current.srcObject = stream;
       socket.emit("accept-call", {
         callerId: incomingCall,
         receiverId: user.userId,
@@ -70,6 +124,22 @@ function MyConnections(){
         socket.on("call-rejected", ({ receiverId }) => {
           console.log("Call Rejected by:", receiverId);
         });
+        socket.on("offer", async ({ offer }) => {
+          console.log("Offer Received", offer)
+          await peerConnection.current.setRemoteDescription(offer)
+          const answer = await peerConnection.current.createAnswer()
+          await peerConnection.current.setLocalDescription(answer)
+          socket.emit("answer", {answer,callerId: incomingCall})
+        })
+        socket.on("answer", async ({ answer }) => {
+          console.log("Answer Received", answer)
+          await peerConnection.current.setRemoteDescription(answer)
+        })
+        socket.on("ice-candidate", async ({ candidate }) => {
+          if (peerConnection.current) {
+            await peerConnection.current.addIceCandidate(candidate)
+          }
+        })
       return () => {
         socket.off("incoming-call")
         socket.off("call-accepted")
@@ -84,7 +154,7 @@ function MyConnections(){
   <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-blue-950 py-8 px-4">
     {incomingCall && (
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div className="bg-white rounded-3xl shadow-2xl w-80 p-8 text-center animate-pulse">
+        <div className="bg-white rounded-3xl shadow-2xl w-80 p-8 text-center">
           <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center text-4xl">
           📞
           </div>
@@ -96,6 +166,7 @@ function MyConnections(){
           <p className="text-gray-500 mt-2">
             Someone is calling you...
           </p>
+          <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-52 rounded-xl mt-4 bg-black object-cover"/>
 
           <div className="flex justify-center gap-4 mt-8">
             <button  onClick={handleAccept} className="px-6 py-3 rounded-full bg-green-500 hover:bg-green-600 text-white font-semibold transition">
@@ -165,9 +236,13 @@ function MyConnections(){
                   <p className="text-gray-600 text-center mt-3">
                     {otherUser.bio || "No bio available"}
                   </p>
-                  <div className="flex gap-3 mt-5">
-                      <button onClick={() => handleCall(otherUser._id)}>📞 Audio</button>
-                      <button onClick={() => handleCall(otherUser._id)}>📹 Video</button>
+                  <div className="flex justify-center gap-4 mt-6">
+                      <button onClick={() => handleCall(otherUser._id)} 
+                        className="w-40 flex items-center justify-center gap-2 py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold shadow-lg transition">
+                        📞 Audio</button>
+                      <button onClick={() => handleCall(otherUser._id)}
+                        className="w-40 flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 px-6 py-3 text-white font-bold shadow-lg hover:from-blue-700 hover:to-cyan-600 hover:scale-105 transition-all duration-300">
+                        📹 Video</button>
                   </div>
                 </div>
               </div>

@@ -73,9 +73,20 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("ice-candidate", ({ candidate, receiverId }) => {
+    const receiverSocketId = onlineUsers.get(receiverId);
+
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("ice-candidate", {
+        candidate,
+      });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("User Disconnected:", socket.id);
   });
+
 });
 
 app.use("/api/auth",authRoutes)
