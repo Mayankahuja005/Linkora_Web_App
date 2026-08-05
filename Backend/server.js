@@ -74,14 +74,21 @@ io.on("connection", (socket) => {
   });
 
   socket.on("ice-candidate", ({ candidate, receiverId }) => {
-    const receiverSocketId = onlineUsers.get(receiverId);
+    const receiverSocketId = onlineUsers.get(receiverId)
 
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("ice-candidate", {
         candidate,
-      });
+      })
     }
-  });
+  })
+  socket.on("end-call", ({ receiverId }) => {
+    const receiverSocketId = onlineUsers.get(receiverId);
+
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("end-call");
+    }
+  })
 
   socket.on("disconnect", () => {
     console.log("User Disconnected:", socket.id);

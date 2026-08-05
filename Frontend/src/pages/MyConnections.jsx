@@ -8,9 +8,14 @@ function MyConnections(){
     const [toast, setToast] = useState(null)
     const { token,user } = useAuthStore()
     const localVideoRef = useRef(null)
+    const remoteVideoRef = useRef(null);
     const [localStream, setLocalStream] = useState(null)
     const peerConnection = useRef(null)
-
+    const [callStarted, setCallStarted] = useState(false)
+    const [isMuted, setIsMuted] = useState(false)
+    const [cameraOff, setCameraOff] = useState(false)
+    const [isFullscreen, setIsFullscreen] = useState(false)
+    const [callTime, setCallTime] = useState(0)
     useEffect(() => {
         if (toast) {
           const timerId = setTimeout(() => {
@@ -47,6 +52,7 @@ function MyConnections(){
         video: true,
         audio: true,
       })
+      setCallStarted(true);
       peerConnection.current = new RTCPeerConnection({
         iceServers: [
           {
@@ -54,6 +60,9 @@ function MyConnections(){
           },
         ],
       })
+      peerConnection.current.ontrack = (event) => {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
       peerConnection.current.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit("ice-candidate", {
@@ -75,11 +84,40 @@ function MyConnections(){
         callerId: user.userId,
       })
     }
+
+    const handleMute = () => {
+      const audioTrack = localStream?.getAudioTracks()[0]
+      if (!audioTrack) return
+        audioTrack.enabled = !audioTrack.enabled
+        setIsMuted(!audioTrack.enabled)
+      }
+
+      const handleCamera = () => {
+        const videoTrack = localStream?.getVideoTracks()[0]
+        if (!videoTrack) return;
+          videoTrack.enabled = !videoTrack.enabled
+          setCameraOff(!videoTrack.enabled)
+      }
+
+      const handleFullscreen = () => {
+        setIsFullscreen(!isFullscreen)
+      }
+
+      useEffect(() => {
+        if (!callStarted) return;
+        const interval = setInterval(() => {
+          setCallTime((prev) => prev + 1);
+        }, 1000);
+        return () => clearInterval(interval);
+      }, [callStarted]);
+
+     
     const handleAccept =async () => {
       const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true,
       })
+      setCallStarted(true);
       peerConnection.current = new RTCPeerConnection({
         iceServers: [
           {
@@ -87,6 +125,9 @@ function MyConnections(){
           }
         ]
       })
+      peerConnection.current.ontrack = (event) => {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
       peerConnection.current.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit("ice-candidate", {
@@ -112,6 +153,15 @@ function MyConnections(){
         receiverId: user.userId,
       })
     }
+
+    const handleEndCall = () => {
+      localStream?.getTracks().forEach((track) => track.stop());
+      peerConnection.current?.close()
+      setCallStarted(false)
+      setCallTime(0)
+      socket.emit("end-call", {
+        receiverId: incomingCall,})
+      }
     useEffect(() => 
       {
         socket.on("incoming-call", ({ callerId }) => {
@@ -125,6 +175,7 @@ function MyConnections(){
           console.log("Call Rejected by:", receiverId);
         });
         socket.on("offer", async ({ offer }) => {
+           if (!peerConnection.current) return
           console.log("Offer Received", offer)
           await peerConnection.current.setRemoteDescription(offer)
           const answer = await peerConnection.current.createAnswer()
@@ -140,57 +191,142 @@ function MyConnections(){
             await peerConnection.current.addIceCandidate(candidate)
           }
         })
+        socket.on("end-call", () => {
+          localStream?.getTracks().forEach((track) => track.stop())
+          peerConnection.current?.close()
+          setCallStarted(false)
+          setCallTime(0)
+        })
       return () => {
         socket.off("incoming-call")
-        socket.off("call-accepted")
         socket.off("call-rejected")
-      }
+        socket.off("call-accepted")
+        socket.off("answer")
+        socket.off("offer")
+        socket.off("ice-candidate")
+        socket.off("end-call");}
       }, 
     []);
 
     if(loading) return "Loading your connections..."
 
-  return (
+    return (
   <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-blue-950 py-8 px-4">
+
+    {/* Incoming Call Popup */}
     {incomingCall && (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div className="bg-white rounded-3xl shadow-2xl w-80 p-8 text-center">
-          <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center text-4xl">
-          📞
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="w-[90%] max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl">
+
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-4xl">
+            📞
           </div>
 
           <h2 className="mt-5 text-2xl font-bold text-gray-800">
             Incoming Call
           </h2>
 
-          <p className="text-gray-500 mt-2">
+          <p className="mt-2 text-gray-500">
             Someone is calling you...
           </p>
-          <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-52 rounded-xl mt-4 bg-black object-cover"/>
 
-          <div className="flex justify-center gap-4 mt-8">
-            <button  onClick={handleAccept} className="px-6 py-3 rounded-full bg-green-500 hover:bg-green-600 text-white font-semibold transition">
+          <div className="mt-8 flex justify-center gap-4">
+            <button
+              onClick={handleAccept}
+              className="rounded-full bg-green-500 px-6 py-3 font-semibold text-white transition hover:bg-green-600"
+            >
               ✅ Accept
             </button>
 
-            <button  onClick={handleReject} className="px-6 py-3 rounded-full bg-red-500 hover:bg-red-600 text-white font-semibold transition">
+            <button
+              onClick={handleReject}
+              className="rounded-full bg-red-500 px-6 py-3 font-semibold text-white transition hover:bg-red-600"
+            >
               ❌ Reject
             </button>
           </div>
+
         </div>
       </div>
     )}
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-3xl sm:text-4xl font-bold text-center text-white mb-8">
+
+    {/* Video Call */}
+    {callStarted && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+
+        <div className="w-[95%] max-w-6xl rounded-3xl bg-slate-900 p-6 shadow-2xl">
+
+          <h2 className="mb-6 text-center text-3xl font-bold text-white">
+            📹 Video Call
+          </h2>
+          <p className="text-center text-lg font-semibold text-green-400 mb-6">
+            {Math.floor(callTime / 60).toString().padStart(2, "0")}:{(callTime % 60).toString().padStart(2, "0")}
+          </p>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+            {/* Local Video */}
+            <div>
+              <h3 className="mb-3 text-center font-semibold text-white">
+                You
+              </h3>
+
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="h-80 w-full rounded-2xl border-4 border-blue-500 bg-black object-cover shadow-xl"
+              />
+            </div>
+
+            {/* Remote Video */}
+            <div>
+              <h3 className="mb-3 text-center font-semibold text-white">
+                Remote User
+              </h3>
+
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="h-80 w-full rounded-2xl border-4 border-green-500 bg-black object-cover shadow-xl"
+              />
+            </div>
+
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+
+            <button
+              onClick={handleEndCall}
+              className="rounded-xl bg-red-600 px-6 py-3 font-semibold text-white hover:bg-red-700"
+            >
+              ❌ End Call
+            </button>
+
+            {/* Mic, Camera, Fullscreen buttons yahin add karenge */}
+
+          </div>
+
+        </div>
+
+      </div>
+    )}
+
+    {/* Remaining UI continues... */}
+        <div className="max-w-6xl mx-auto">
+
+      <h1 className="mb-8 text-center text-3xl font-bold text-white sm:text-4xl">
         My Connections
       </h1>
 
       {toast && (
         <div
-          className={`max-w-md mx-auto mb-6 rounded-xl px-4 py-3 text-center font-medium ${
+          className={`mx-auto mb-6 max-w-md rounded-xl border px-4 py-3 text-center font-medium ${
             toast.type === "success"
-              ? "bg-green-100 text-green-700 border border-green-300"
-              : "bg-red-100 text-red-700 border border-red-300"
+              ? "border-green-300 bg-green-100 text-green-700"
+              : "border-red-300 bg-red-100 text-red-700"
           }`}
         >
           {toast.message}
@@ -198,11 +334,12 @@ function MyConnections(){
       )}
 
       {connections.length === 0 ? (
-        <div className="text-center text-white text-xl mt-20">
+        <div className="mt-20 text-center text-xl text-white">
           You don't have any connections yet.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
           {connections.map((connection) => {
             const otherUser =
               connection.sender._id === user?.userId
@@ -212,47 +349,66 @@ function MyConnections(){
             return (
               <div
                 key={connection._id}
-                className="bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+                className="overflow-hidden rounded-3xl bg-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
               >
+
                 {/* Cover */}
                 <div className="h-32 bg-linear-to-r from-blue-600 via-cyan-500 to-indigo-600"></div>
 
                 {/* Profile */}
-                <div className="flex flex-col items-center px-6 pb-6 -mt-14">
+                <div className="-mt-14 flex flex-col items-center px-6 pb-6">
+
                   <img
                     src={otherUser.profileImage || "https://placehold.co/200"}
                     alt={otherUser.name}
-                    className="w-28 h-28 rounded-full border-4 border-white object-cover shadow-lg bg-gray-200"
+                    className="h-28 w-28 rounded-full border-4 border-white bg-gray-200 object-cover shadow-lg"
                   />
 
                   <h2 className="mt-4 text-2xl font-bold text-gray-800">
                     {otherUser.name}
                   </h2>
 
-                  <p className="text-gray-500 mt-1 text-center">
+                  <p className="mt-1 text-center text-gray-500">
                     {otherUser.email}
                   </p>
 
-                  <p className="text-gray-600 text-center mt-3">
+                  <p className="mt-3 text-center text-gray-600">
                     {otherUser.bio || "No bio available"}
                   </p>
-                  <div className="flex justify-center gap-4 mt-6">
-                      <button onClick={() => handleCall(otherUser._id)} 
-                        className="w-40 flex items-center justify-center gap-2 py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold shadow-lg transition">
-                        📞 Audio</button>
-                      <button onClick={() => handleCall(otherUser._id)}
-                        className="w-40 flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 px-6 py-3 text-white font-bold shadow-lg hover:from-blue-700 hover:to-cyan-600 hover:scale-105 transition-all duration-300">
-                        📹 Video</button>
+
+                  <div className="mt-6 flex justify-center gap-4">
+
+                    <button
+                      onClick={() => handleCall(otherUser._id)}
+                      className="flex w-40 items-center justify-center gap-2 rounded-2xl bg-green-500 py-3 font-bold text-white shadow-lg transition hover:bg-green-600"
+                    >
+                      📞 Audio
+                    </button>
+
+                    <button
+                      onClick={() => handleCall(otherUser._id)}
+                      className="flex w-40 items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 px-6 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-blue-700 hover:to-cyan-600"
+                    >
+                      📹 Video
+                    </button>
+
                   </div>
+
                 </div>
+
               </div>
             );
           })}
+
         </div>
       )}
+
     </div>
+
   </div>
 );
-    
+
 }
-export default MyConnections
+
+export default MyConnections;
+  
