@@ -104,7 +104,7 @@ function Signup() {
             value={formData.name}
             onChange={handleChange}
             name="name"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           />
 
           <input
@@ -113,8 +113,7 @@ function Signup() {
             value={formData.email}
             onChange={handleChange}
             name="email"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-          />
+            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"/>
 
           <input
             type="password"
@@ -122,7 +121,7 @@ function Signup() {
             value={formData.password}
             onChange={handleChange}
             name="password"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           />
 
           {toast && (

@@ -78,7 +78,9 @@ function MyConnections(){
       await peerConnection.current.setLocalDescription(offer)
       socket.emit("offer", {offer,receiverId});
       setLocalStream(stream)
-      localVideoRef.current.srcObject = stream
+      setTimeout(() => {
+        localVideoRef.current.srcObject = stream;
+      }, 100);
       socket.emit("call-user", {
         receiverId,
         callerId: user.userId,
@@ -94,13 +96,21 @@ function MyConnections(){
 
       const handleCamera = () => {
         const videoTrack = localStream?.getVideoTracks()[0]
-        if (!videoTrack) return;
+        if (!videoTrack) return
           videoTrack.enabled = !videoTrack.enabled
           setCameraOff(!videoTrack.enabled)
       }
 
       const handleFullscreen = () => {
-        setIsFullscreen(!isFullscreen)
+        const container = document.getElementById("video-call-container");
+
+        if (!document.fullscreenElement) {
+          container.requestFullscreen()
+          setIsFullscreen(true)
+        } else {
+          document.exitFullscreen();
+          setIsFullscreen(false);
+        }
       }
 
       useEffect(() => {
@@ -109,7 +119,7 @@ function MyConnections(){
           setCallTime((prev) => prev + 1);
         }, 1000);
         return () => clearInterval(interval);
-      }, [callStarted]);
+      }, [callStarted])
 
      
     const handleAccept =async () => {
@@ -133,14 +143,16 @@ function MyConnections(){
           socket.emit("ice-candidate", {
             candidate: event.candidate,
           receiverId: incomingCall,
-          });
+          })
         }
       }
       stream.getTracks().forEach((track) => {
         peerConnection.current.addTrack(track, stream)
       })
       setLocalStream(stream);
-      localVideoRef.current.srcObject = stream;
+      setTimeout(() => {
+        localVideoRef.current.srcObject = stream
+      }, 100)
       socket.emit("accept-call", {
         callerId: incomingCall,
         receiverId: user.userId,
@@ -161,7 +173,13 @@ function MyConnections(){
       setCallTime(0)
       socket.emit("end-call", {
         receiverId: incomingCall,})
-      }
+
+      setIncomingCall(null)
+      setLocalStream(null)
+
+      if (localVideoRef.current) localVideoRef.current.srcObject = null
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
+    }
     useEffect(() => 
       {
         socket.on("incoming-call", ({ callerId }) => {
@@ -216,7 +234,7 @@ function MyConnections(){
     {/* Incoming Call Popup */}
     {incomingCall && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="w-[90%] max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl">
+        <div className="w-[90%] max-w-sm rounded-3xl bg-white p-6 sm:p-8 text-center shadow-2xl">
 
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-4xl">
             📞
@@ -230,17 +248,17 @@ function MyConnections(){
             Someone is calling you...
           </p>
 
-          <div className="mt-8 flex justify-center gap-4">
+          <div className="mt-8 flex gap-4">
             <button
               onClick={handleAccept}
-              className="rounded-full bg-green-500 px-6 py-3 font-semibold text-white transition hover:bg-green-600"
+              className="flex-1 rounded-full bg-green-500 px-6 py-3 font-semibold text-white transition hover:bg-green-600"
             >
               ✅ Accept
             </button>
 
             <button
               onClick={handleReject}
-              className="rounded-full bg-red-500 px-6 py-3 font-semibold text-white transition hover:bg-red-600"
+              className="flex-1 rounded-full bg-red-500 px-6 py-3 font-semibold text-white transition hover:bg-red-600"
             >
               ❌ Reject
             </button>
@@ -252,19 +270,26 @@ function MyConnections(){
 
     {/* Video Call */}
     {callStarted && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div
+        id="video-call-container"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4"
+      >
+        <div
+          className={`w-full ${
+            isFullscreen ? "max-w-full h-full rounded-none" : "max-w-6xl rounded-3xl"
+          } max-h-[95vh] overflow-y-auto bg-slate-900 p-4 sm:p-6 shadow-2xl`}
+        >
 
-        <div className="w-[95%] max-w-6xl rounded-3xl bg-slate-900 p-6 shadow-2xl">
-
-          <h2 className="mb-6 text-center text-3xl font-bold text-white">
+          <h2 className="text-center text-2xl sm:text-3xl font-bold text-white">
             📹 Video Call
           </h2>
-          <p className="text-center text-lg font-semibold text-green-400 mb-6">
-            {Math.floor(callTime / 60).toString().padStart(2, "0")}:{(callTime % 60).toString().padStart(2, "0")}
+
+          <p className="mt-3 mb-5 text-center text-base sm:text-xl font-bold text-green-400">
+            {Math.floor(callTime / 60).toString().padStart(2, "0")}:
+            {(callTime % 60).toString().padStart(2, "0")}
           </p>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Local Video */}
             <div>
               <h3 className="mb-3 text-center font-semibold text-white">
@@ -276,7 +301,7 @@ function MyConnections(){
                 autoPlay
                 playsInline
                 muted
-                className="h-80 w-full rounded-2xl border-4 border-blue-500 bg-black object-cover shadow-xl"
+                className="w-full h-56 sm:h-72 lg:h-80 rounded-2xl border-4 border-blue-500 bg-black object-cover shadow-xl"
               />
             </div>
 
@@ -290,22 +315,41 @@ function MyConnections(){
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
-                className="h-80 w-full rounded-2xl border-4 border-green-500 bg-black object-cover shadow-xl"
+                className="w-full h-56 sm:h-72 lg:h-80 rounded-2xl border-4 border-green-500 bg-black object-cover shadow-xl"
               />
             </div>
 
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+
+            <button
+              onClick={handleMute}
+              className="w-full sm:w-auto rounded-xl bg-yellow-500 px-5 py-3 font-semibold text-white hover:bg-yellow-600"
+            >
+              {isMuted ? "🎤 Unmute" : "🔇 Mute"}
+            </button>
+
+            <button
+              onClick={handleCamera}
+              className="w-full sm:w-auto rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700"
+            >
+              {cameraOff ? "📷 Camera On" : "📷 Camera Off"}
+            </button>
+
+            <button
+              onClick={handleFullscreen}
+              className="w-full sm:w-auto rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+            >
+              {isFullscreen ? "🗗 Exit Fullscreen" : "🗖 Fullscreen"}
+            </button>
 
             <button
               onClick={handleEndCall}
-              className="rounded-xl bg-red-600 px-6 py-3 font-semibold text-white hover:bg-red-700"
+              className="w-full sm:w-auto rounded-xl bg-red-600 px-6 py-3 font-semibold text-white hover:bg-red-700"
             >
               ❌ End Call
             </button>
-
-            {/* Mic, Camera, Fullscreen buttons yahin add karenge */}
 
           </div>
 
@@ -314,10 +358,10 @@ function MyConnections(){
       </div>
     )}
 
-    {/* Remaining UI continues... */}
-        <div className="max-w-6xl mx-auto">
+    {/* Remaining UI */}
+    <div className="max-w-6xl mx-auto">
 
-      <h1 className="mb-8 text-center text-3xl font-bold text-white sm:text-4xl">
+      <h1 className="mb-8 text-center text-3xl sm:text-4xl font-bold text-white">
         My Connections
       </h1>
 
@@ -376,18 +420,18 @@ function MyConnections(){
                     {otherUser.bio || "No bio available"}
                   </p>
 
-                  <div className="mt-6 flex justify-center gap-4">
+                  <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3 w-full">
 
                     <button
                       onClick={() => handleCall(otherUser._id)}
-                      className="flex w-40 items-center justify-center gap-2 rounded-2xl bg-green-500 py-3 font-bold text-white shadow-lg transition hover:bg-green-600"
+                      className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-500 py-3 font-bold text-white shadow-lg transition hover:bg-green-600"
                     >
                       📞 Audio
                     </button>
 
                     <button
                       onClick={() => handleCall(otherUser._id)}
-                      className="flex w-40 items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 px-6 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-blue-700 hover:to-cyan-600"
+                      className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 px-6 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-blue-700 hover:to-cyan-600"
                     >
                       📹 Video
                     </button>
@@ -407,8 +451,5 @@ function MyConnections(){
 
   </div>
 );
-
 }
-
-export default MyConnections;
-  
+export default MyConnections
