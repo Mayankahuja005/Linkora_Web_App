@@ -74,7 +74,8 @@ io.on("connection", (socket) => {
   })
 
   socket.on("offer", ({ offer, receiverId }) => {
-    const receiverSocketId = onlineUsers.get(receiverId);
+    console.log("Offer Event:", receiverId)
+    const receiverSocketId = onlineUsers.get(receiverId)
 
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("offer", {
