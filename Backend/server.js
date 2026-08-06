@@ -71,7 +71,27 @@ io.on("connection", (socket) => {
             receiverId,
         })
     }
+  })
+
+  socket.on("offer", ({ offer, receiverId }) => {
+    const receiverSocketId = onlineUsers.get(receiverId);
+
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("offer", {
+        offer,
+      })
+    }
   });
+
+  socket.on("answer", ({ answer, callerId }) => {
+    const callerSocketId = onlineUsers.get(callerId)
+
+    if (callerSocketId) {
+      io.to(callerSocketId).emit("answer", {
+        answer,
+      })
+    }
+  })
 
   socket.on("ice-candidate", ({ candidate, receiverId }) => {
     const receiverSocketId = onlineUsers.get(receiverId)
