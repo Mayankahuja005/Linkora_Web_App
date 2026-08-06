@@ -10,6 +10,7 @@ function MyConnections(){
     const localVideoRef = useRef(null)
     const remoteVideoRef = useRef(null);
     const [localStream, setLocalStream] = useState(null)
+    const [remoteUserId, setRemoteUserId] = useState(null)
     const peerConnection = useRef(null)
     const [callStarted, setCallStarted] = useState(false)
     const [isMuted, setIsMuted] = useState(false)
@@ -80,7 +81,8 @@ function MyConnections(){
       setLocalStream(stream)
       setTimeout(() => {
         localVideoRef.current.srcObject = stream;
-      }, 100);
+      }, 100)
+      setRemoteUserId(receiverId)
       socket.emit("call-user", {
         receiverId,
         callerId: user.userId,
@@ -172,10 +174,11 @@ function MyConnections(){
       setCallStarted(false)
       setCallTime(0)
       socket.emit("end-call", {
-        receiverId: incomingCall,})
+        receiverId: remoteUserId})
 
       setIncomingCall(null)
       setLocalStream(null)
+      setRemoteUserId(null)
 
       if (localVideoRef.current) localVideoRef.current.srcObject = null
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
@@ -183,7 +186,8 @@ function MyConnections(){
     useEffect(() => 
       {
         socket.on("incoming-call", ({ callerId }) => {
-          setIncomingCall(callerId);
+          setIncomingCall(callerId)
+          setRemoteUserId(callerId)
           console.log("Incoming Call From:", callerId)
         })
         socket.on("call-accepted", ({ receiverId }) => {
