@@ -40,7 +40,7 @@ function Home(){
    },[])
    const handleConnect=async (receiverId)=>{
       try {
-         const response =await fetch(`http://localhost:5000/api/connections/send/${receiverId}`,{
+         const response =await fetch(`${import.meta.env.VITE_API_URL}/api/connections/send/${receiverId}`,{
             method: "POST",
             headers:{Authorization:`Bearer ${token}`}
          })

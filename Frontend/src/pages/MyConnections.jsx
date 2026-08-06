@@ -30,7 +30,7 @@ function MyConnections(){
         const fetchConnections =async ()=>{
             try {
                 setLoading(true)
-                const response =await fetch("http://localhost:5000/api/connections/my-connection",{
+                const response =await fetch(`${import.meta.env.VITE_API_URL}/api/connections/my-connection`,{
                                     headers:{Authorization:`Bearer ${token}`}
                                 })
                 const data=await response.json()

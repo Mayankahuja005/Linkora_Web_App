@@ -20,7 +20,7 @@ function Pending(){
         const fetchPending=async ()=>{
             try {
                 setLoading(true);
-                const response =await fetch("http://localhost:5000/api/connections/pending",{
+                const response =await fetch(`${import.meta.env.VITE_API_URL}/api/connections/pending`,{
                                     headers:{Authorization:`Bearer ${token}`}
                                 })
                 const data=await response.json()
@@ -39,7 +39,7 @@ function Pending(){
 
     const handleAccept=async (requestId)=>{
         try {
-            const response =await fetch(`http://localhost:5000/api/connections/accept/${requestId}`,{
+            const response =await fetch(`${import.meta.env.VITE_API_URL}/api/connections/accept/${requestId}`,{
                                 method:"PUT",
                                 headers:{Authorization:`Bearer ${token}`}
                             })
@@ -56,7 +56,7 @@ function Pending(){
     }
     const handleReject=async (requestId)=>{
         try {
-            const response =await fetch(`http://localhost:5000/api/connections/reject/${requestId}`,{
+            const response =await fetch(`${import.meta.env.VITE_API_URL}/api/connections/reject/${requestId}`,{
                                 method:"PUT",
                                 headers:{Authorization:`Bearer ${token}`}
                             })
