@@ -22,6 +22,7 @@ Linkora is a **MERN Stack** based social networking web application that allows 
 
 ### 🎨 Frontend
 - ⚛️ React.js
+- ⚡ Vite
 - 🎨 Tailwind CSS
 - 🛣️ React Router DOM
 - 🗂️ Zustand
