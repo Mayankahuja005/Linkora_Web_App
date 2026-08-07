@@ -64,7 +64,7 @@ function MyConnections(){
       peerConnection.current.oniceconnectionstatechange = () => {
          console.log("ICE State:", peerConnection.current.iceConnectionState);
       }
-      peerConnection.current.ontrack = (event) => {
+      peerConnection.current.ontrack =async (event) => {
         console.log("TRACK RECEIVED", event.streams)
         console.log(event.streams[0].getVideoTracks())
         console.log(event.streams[0].getAudioTracks())
@@ -150,7 +150,7 @@ function MyConnections(){
       peerConnection.current.oniceconnectionstatechange = () => {
         console.log("ICE State:", peerConnection.current.iceConnectionState);
       }
-      peerConnection.current.ontrack = (event) => {
+      peerConnection.current.ontrack = async (event) => {
         console.log("TRACK RECEIVED", event.streams)
         console.log(event.streams[0].getVideoTracks())
         console.log(event.streams[0].getAudioTracks())
@@ -222,6 +222,7 @@ function MyConnections(){
           socket.emit("offer", {
             offer,
             receiverId,
+            callerId: user.userId,   
           })
         })
         socket.on("call-rejected", ({ receiverId }) => {
