@@ -65,7 +65,9 @@ function MyConnections(){
          console.log("ICE State:", peerConnection.current.iceConnectionState);
       }
       peerConnection.current.ontrack = (event) => {
-        console.log("TRACK RECEIVED", event.streams);
+        console.log("TRACK RECEIVED", event.streams)
+        console.log(event.streams[0].getVideoTracks())
+        console.log(event.streams[0].getAudioTracks())
 
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0]
@@ -150,6 +152,9 @@ function MyConnections(){
       }
       peerConnection.current.ontrack = (event) => {
         console.log("TRACK RECEIVED", event.streams)
+        console.log(event.streams[0].getVideoTracks())
+        console.log(event.streams[0].getAudioTracks())
+
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0]
           await remoteVideoRef.current.play()
