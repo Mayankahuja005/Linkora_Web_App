@@ -12,11 +12,42 @@ function MyConnections(){
     const [localStream, setLocalStream] = useState(null)
     const [remoteUserId, setRemoteUserId] = useState(null)
     const peerConnection = useRef(null)
+    const pendingCandidates = useRef([])
     const [callStarted, setCallStarted] = useState(false)
     const [isMuted, setIsMuted] = useState(false)
     const [cameraOff, setCameraOff] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [callTime, setCallTime] = useState(0)
+
+    const ICE_SERVERS = [
+      { urls: "stun:stun.l.google.com:19302" },
+      // Free TURN server (OpenRelay) - needed when both users are on
+      // different networks (mobile data / different WiFi / behind NAT).
+      // For production, replace with your own TURN credentials (Twilio,
+      // Xirsys, Metered.ca, etc.) since this public one is rate-limited.
+      {
+        urls: "turn:openrelay.metered.ca:80",
+        username: "openrelayproject",
+        credential: "openrelayproject",
+      },
+      {
+        urls: "turn:openrelay.metered.ca:443",
+        username: "openrelayproject",
+        credential: "openrelayproject",
+      },
+    ]
+
+    const flushPendingCandidates = async () => {
+      while (pendingCandidates.current.length) {
+        const candidate = pendingCandidates.current.shift()
+        try {
+          await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate))
+        } catch (err) {
+          console.log("Failed to add buffered ICE candidate", err)
+        }
+      }
+    }
+
     useEffect(() => {
         if (toast) {
           const timerId = setTimeout(() => {
@@ -54,17 +85,14 @@ function MyConnections(){
         audio: true,
       })
       setCallStarted(true);
+      pendingCandidates.current = []
       peerConnection.current = new RTCPeerConnection({
-        iceServers: [
-          {
-            urls: "stun:stun.l.google.com:19302",
-          },
-        ],
+        iceServers: ICE_SERVERS,
       })
       peerConnection.current.oniceconnectionstatechange = () => {
          console.log("ICE State:", peerConnection.current.iceConnectionState);
       }
-      peerConnection.current.ontrack =async (event) => {
+      peerConnection.current.ontrack = async (event) => {
         console.log("TRACK RECEIVED", event.streams)
         console.log(event.streams[0].getVideoTracks())
         console.log(event.streams[0].getAudioTracks())
@@ -140,12 +168,9 @@ function MyConnections(){
       audio: true,
       })
       setCallStarted(true);
+      pendingCandidates.current = []
       peerConnection.current = new RTCPeerConnection({
-        iceServers: [
-          {
-            urls: "stun:stun.l.google.com:19302",
-          }
-        ]
+        iceServers: ICE_SERVERS,
       })
       peerConnection.current.oniceconnectionstatechange = () => {
         console.log("ICE State:", peerConnection.current.iceConnectionState);
@@ -194,6 +219,7 @@ function MyConnections(){
     const handleEndCall = () => {
       localStream?.getTracks().forEach((track) => track.stop());
       peerConnection.current?.close()
+      pendingCandidates.current = []
       setCallStarted(false)
       setCallTime(0)
       socket.emit("end-call", {
@@ -222,7 +248,7 @@ function MyConnections(){
           socket.emit("offer", {
             offer,
             receiverId,
-            callerId: user.userId,   
+            callerId: user.userId,
           })
         })
         socket.on("call-rejected", ({ receiverId }) => {
@@ -240,6 +266,7 @@ function MyConnections(){
           await peerConnection.current.setRemoteDescription(
             new RTCSessionDescription(offer)
           )
+          await flushPendingCandidates()
 
           const answer = await peerConnection.current.createAnswer()
           await peerConnection.current.setLocalDescription(answer)
@@ -255,19 +282,28 @@ function MyConnections(){
           await peerConnection.current.setRemoteDescription(
             new RTCSessionDescription(answer)
           )
+          await flushPendingCandidates()
           console.log(peerConnection.current.getReceivers());
         })
         
         socket.on("ice-candidate", async ({ candidate }) => {
           console.log("ICE Candidate Received", candidate)
-          if (peerConnection.current && peerConnection.current.remoteDescription) {
-            await peerConnection.current.addIceCandidate(
-            new RTCIceCandidate(candidate))
+          if (peerConnection.current && peerConnection.current.remoteDescription && peerConnection.current.remoteDescription.type) {
+            try {
+              await peerConnection.current.addIceCandidate(
+              new RTCIceCandidate(candidate))
+            } catch (err) {
+              console.log("Failed to add ICE candidate", err)
+            }
+          } else {
+            // remoteDescription not set yet - buffer it and flush once it's set
+            pendingCandidates.current.push(candidate)
           }
         })
         socket.on("end-call", () => {
           localStream?.getTracks().forEach((track) => track.stop())
           peerConnection.current?.close()
+          pendingCandidates.current = []
           setCallStarted(false)
           setCallTime(0)
         })
