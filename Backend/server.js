@@ -73,16 +73,17 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("offer", ({ offer, receiverId }) => {
+  socket.on("offer", ({ offer, receiverId, callerId }) => {
     console.log("Offer Event:", receiverId)
     const receiverSocketId = onlineUsers.get(receiverId)
 
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("offer", {
         offer,
+        callerId
       })
     }
-  });
+  })
 
   socket.on("answer", ({ answer, callerId }) => {
     const callerSocketId = onlineUsers.get(callerId)

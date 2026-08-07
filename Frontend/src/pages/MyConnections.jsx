@@ -61,8 +61,15 @@ function MyConnections(){
           },
         ],
       })
+      peerConnection.current.oniceconnectionstatechange = () => {
+         console.log("ICE State:", peerConnection.current.iceConnectionState);
+      }
       peerConnection.current.ontrack = (event) => {
-        remoteVideoRef.current.srcObject = event.streams[0];
+        console.log("TRACK RECEIVED", event.streams);
+
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
       }
       peerConnection.current.onicecandidate = (event) => {
         if (event.candidate) {
@@ -75,9 +82,7 @@ function MyConnections(){
       stream.getTracks().forEach((track) => {
         peerConnection.current.addTrack(track, stream);
       });
-      const offer = await peerConnection.current.createOffer()
-      await peerConnection.current.setLocalDescription(offer)
-      socket.emit("offer", {offer,receiverId});
+      
       setLocalStream(stream)
       setTimeout(() => {
         localVideoRef.current.srcObject = stream;
@@ -137,8 +142,14 @@ function MyConnections(){
           }
         ]
       })
+      peerConnection.current.oniceconnectionstatechange = () => {
+        console.log("ICE State:", peerConnection.current.iceConnectionState);
+      }
       peerConnection.current.ontrack = (event) => {
-        remoteVideoRef.current.srcObject = event.streams[0];
+        console.log("TRACK RECEIVED", event.streams)
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
       }
       peerConnection.current.onicecandidate = (event) => {
         if (event.candidate) {
@@ -159,6 +170,7 @@ function MyConnections(){
         callerId: incomingCall,
         receiverId: user.userId,
       })
+      setIncomingCall(null)
     }
 
     const handleReject = () => {
@@ -190,27 +202,53 @@ function MyConnections(){
           setRemoteUserId(callerId)
           console.log("Incoming Call From:", callerId)
         })
-        socket.on("call-accepted", ({ receiverId }) => {
+       socket.on("call-accepted", async ({ receiverId }) => {
           console.log("Call Accepted by:", receiverId);
-        });
+
+          const offer = await peerConnection.current.createOffer();
+          await peerConnection.current.setLocalDescription(offer);
+
+          socket.emit("offer", {
+            offer,
+            receiverId,
+          })
+        })
         socket.on("call-rejected", ({ receiverId }) => {
           console.log("Call Rejected by:", receiverId);
-        });
-        socket.on("offer", async ({ offer }) => {
-           if (!peerConnection.current) return
+        })
+
+        socket.on("offer", async ({ offer, callerId }) => {
           console.log("Offer Received", offer)
-          await peerConnection.current.setRemoteDescription(offer)
+          console.log("Peer:", peerConnection.current)
+
+          while (!peerConnection.current) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+
+          await peerConnection.current.setRemoteDescription(
+            new RTCSessionDescription(offer)
+          )
+
           const answer = await peerConnection.current.createAnswer()
           await peerConnection.current.setLocalDescription(answer)
-          socket.emit("answer", {answer,callerId: incomingCall})
+
+          socket.emit("answer", {
+            answer,
+            callerId,
+          })
         })
+
         socket.on("answer", async ({ answer }) => {
           console.log("Answer Received", answer)
-          await peerConnection.current.setRemoteDescription(answer)
+          await peerConnection.current.setRemoteDescription(
+            new RTCSessionDescription(answer)
+          )
         })
         socket.on("ice-candidate", async ({ candidate }) => {
           if (peerConnection.current) {
-            await peerConnection.current.addIceCandidate(candidate)
+           await peerConnection.current.addIceCandidate(
+            new RTCIceCandidate(candidate)
+            )
           }
         })
         socket.on("end-call", () => {
@@ -228,7 +266,7 @@ function MyConnections(){
         socket.off("ice-candidate")
         socket.off("end-call");}
       }, 
-    []);
+    [])
 
     if(loading) return "Loading your connections..."
 
