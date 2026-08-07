@@ -82,7 +82,8 @@ function MyConnections(){
       }
       stream.getTracks().forEach((track) => {
         peerConnection.current.addTrack(track, stream);
-      });
+      })
+      console.log(peerConnection.current.getSenders());
       
       setLocalStream(stream)
       setTimeout(() => {
@@ -164,6 +165,7 @@ function MyConnections(){
       stream.getTracks().forEach((track) => {
         peerConnection.current.addTrack(track, stream)
       })
+      console.log(peerConnection.current.getSenders())
       setLocalStream(stream);
       setTimeout(() => {
         localVideoRef.current.srcObject = stream
@@ -245,7 +247,9 @@ function MyConnections(){
           await peerConnection.current.setRemoteDescription(
             new RTCSessionDescription(answer)
           )
+          console.log(peerConnection.current.getReceivers());
         })
+        
         socket.on("ice-candidate", async ({ candidate }) => {
           console.log("ICE Candidate Received", candidate)
           if (peerConnection.current && peerConnection.current.remoteDescription) {
