@@ -245,10 +245,9 @@ function MyConnections(){
           )
         })
         socket.on("ice-candidate", async ({ candidate }) => {
-          if (peerConnection.current) {
-           await peerConnection.current.addIceCandidate(
-            new RTCIceCandidate(candidate)
-            )
+          if (peerConnection.current && peerConnection.current.remoteDescription) {
+            await peerConnection.current.addIceCandidate(
+            new RTCIceCandidate(candidate))
           }
         })
         socket.on("end-call", () => {
