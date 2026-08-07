@@ -98,13 +98,22 @@ function MyConnections(){
         console.log(event.streams[0].getAudioTracks())
 
         if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0]
-          await remoteVideoRef.current.play()
+          // ontrack fires once per track (video + audio) - only (re)assign
+          // srcObject + play() the first time, otherwise play() gets aborted
+          // by the second assignment (AbortError).
+          if (remoteVideoRef.current.srcObject !== event.streams[0]) {
+            remoteVideoRef.current.srcObject = event.streams[0]
+            try {
+              await remoteVideoRef.current.play()
+            } catch (err) {
+              console.log("Remote video play() failed", err)
+            }
+          }
         }
       }
       peerConnection.current.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("ICE Candidate Sent", event.candidate)
+          console.log("ICE Candidate Sent", event.candidate.type, event.candidate)
           socket.emit("ice-candidate", {
             candidate: event.candidate,
             receiverId
@@ -181,13 +190,19 @@ function MyConnections(){
         console.log(event.streams[0].getAudioTracks())
 
         if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0]
-          await remoteVideoRef.current.play()
+          if (remoteVideoRef.current.srcObject !== event.streams[0]) {
+            remoteVideoRef.current.srcObject = event.streams[0]
+            try {
+              await remoteVideoRef.current.play()
+            } catch (err) {
+              console.log("Remote video play() failed", err)
+            }
+          }
         }
       }
       peerConnection.current.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("ICE Candidate Sent", event.candidate)
+          console.log("ICE Candidate Sent", event.candidate.type, event.candidate)
           socket.emit("ice-candidate", {
             candidate: event.candidate,
             receiverId: incomingCall,
