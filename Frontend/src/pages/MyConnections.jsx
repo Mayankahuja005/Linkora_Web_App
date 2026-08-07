@@ -73,6 +73,7 @@ function MyConnections(){
       }
       peerConnection.current.onicecandidate = (event) => {
         if (event.candidate) {
+          console.log("ICE Candidate Sent", event.candidate)
           socket.emit("ice-candidate", {
             candidate: event.candidate,
             receiverId
@@ -153,6 +154,7 @@ function MyConnections(){
       }
       peerConnection.current.onicecandidate = (event) => {
         if (event.candidate) {
+          console.log("ICE Candidate Sent", event.candidate)
           socket.emit("ice-candidate", {
             candidate: event.candidate,
           receiverId: incomingCall,
@@ -245,6 +247,7 @@ function MyConnections(){
           )
         })
         socket.on("ice-candidate", async ({ candidate }) => {
+          console.log("ICE Candidate Received", candidate)
           if (peerConnection.current && peerConnection.current.remoteDescription) {
             await peerConnection.current.addIceCandidate(
             new RTCIceCandidate(candidate))
