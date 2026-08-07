@@ -68,7 +68,8 @@ function MyConnections(){
         console.log("TRACK RECEIVED", event.streams);
 
         if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
+          remoteVideoRef.current.srcObject = event.streams[0]
+          await remoteVideoRef.current.play()
         }
       }
       peerConnection.current.onicecandidate = (event) => {
@@ -150,7 +151,8 @@ function MyConnections(){
       peerConnection.current.ontrack = (event) => {
         console.log("TRACK RECEIVED", event.streams)
         if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
+          remoteVideoRef.current.srcObject = event.streams[0]
+          await remoteVideoRef.current.play()
         }
       }
       peerConnection.current.onicecandidate = (event) => {
@@ -158,7 +160,7 @@ function MyConnections(){
           console.log("ICE Candidate Sent", event.candidate)
           socket.emit("ice-candidate", {
             candidate: event.candidate,
-          receiverId: incomingCall,
+            receiverId: incomingCall,
           })
         }
       }
